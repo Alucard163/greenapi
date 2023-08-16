@@ -1,0 +1,32 @@
+version: "3.2"
+services:
+  rabbitmq:
+    image: rabbitmq:3.10-management
+    container_name: 'rabbitmq'
+    restart: always
+    ports:
+      - 5673:5672
+      - 15673:15672
+    volumes:
+      - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
+      - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
+    networks:
+      - rabbitmq_nodejs
+  server:
+    build:
+      context: ./
+      target: dev
+    depends_on:
+      - "rabbitmq"
+    command: sh -c '/bin/wait-for-it.sh rabbitmq:5672 --timeout=30 && node ./client/index.js --timeout=30 && node ./server/index.js --timeout=30'
+    environment:
+      NODE_ENV: production
+      AMQP_URL: amqp://guest:guest@rabbitmq:5672
+    ports:
+      - 4001:4001
+      - 5672:5672
+    networks:
+      - rabbitmq_nodejs
+networks:
+  rabbitmq_nodejs:
+    driver: bridge
